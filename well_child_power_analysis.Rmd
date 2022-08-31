@@ -1,0 +1,42 @@
+---
+title: "well_child_power_analysis"
+author: "Yi-Lun Weng"
+date: '2022-08-08'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Reference: https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12504
+
+```{r,warning=FALSE}
+library(simr)
+library(lme4)
+data <- read.csv("click_input.csv")
+data$order <- as.factor(data$order)
+data$condition <- as.factor(data$condition)
+model <- glmer(click ~ order*condition + (1|subject) + (1|verb), family = binomial, data = data)
+summary(model)
+fixef(model)["conditionmod"]
+```
+
+```{r,warning=FALSE}
+## Specifying an Effect Size ##
+fixef(model)["conditionmod"] <- -0.5991 #based on Main effect of Training type of WELL-Adult click result 
+model_sim_cond <- powerSim(model, nsim = 100, test = fcompare(click~condition))
+model_sim_cond
+```
+
+```{r,warning=FALSE}
+## Changing sample size
+model_extend_subj <- extend(model, within="condition+order+verb", n=50)
+model_extend_subj
+sim_sub_res <- powerSim(model_extend_subj, nsim=100, test=fcompare(click~condition))
+sim_sub_res
+```
+
+```{r,warning=FALSE}
+p_curve_sub <- powerCurve(model_extend_subj, test=fcompare(click~condition), within="condition+order+verb", breaks = c(5,10,15,20,25,30,35,40,45,50))
+plot(p_curve_sub)
+```
